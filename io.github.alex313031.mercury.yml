@@ -61,10 +61,10 @@ modules:
           version-query: '.tag_name | sub("^v."; "")'
           url-query: '.assets[] | select(.name=="mercury_" + $version + "_linux_x64.zip") | .browser_download_url'
           is-main-source: true
-      - type: file
-        path: io.gitlab.librewolf-community.desktop
-      - type: file
-        path: io.gitlab.librewolf-community.appdata.xml
+      # - type: file
+      #   path: io.gitlab.librewolf-community.desktop
+      # - type: file
+      #   path: io.gitlab.librewolf-community.appdata.xml
       - type: file
         path: mercury.sh
   - name: gtk-cups-backend
