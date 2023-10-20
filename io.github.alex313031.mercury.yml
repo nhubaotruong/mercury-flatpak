@@ -1,0 +1,105 @@
+app-id: io.github.alex313031.mercury
+runtime: org.freedesktop.Platform
+runtime-version: "23.08"
+sdk: org.freedesktop.Sdk
+add-extensions:
+  org.freedesktop.Platform.ffmpeg-full:
+    directory: lib/ffmpeg
+    version: "23.08"
+    add-ld-path: .
+command: mercury
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --socket=pcsc
+  - --socket=pulseaudio
+  - --socket=cups
+  - --env=GTK_PATH=/app/lib/gtkmodules
+  - --persist=.mercury
+  - --filesystem=xdg-download:rw
+  - --filesystem=xdg-run/pipewire-0
+  - --device=dri
+  - --talk-name=org.freedesktop.FileManager1
+  - --system-talk-name=org.freedesktop.NetworkManager
+  - --talk-name=org.a11y.Bus
+  - --talk-name=org.gnome.SessionManager
+  - --talk-name=org.freedesktop.ScreenSaver
+  - --talk-name=org.gtk.vfs.*
+  - --talk-name=org.freedesktop.Notifications
+  - --env=MOZ_ENABLE_WAYLAND=1
+  - --env=MOZ_USE_XINPUT2=1
+  - --env=MOZ_DBUS_REMOTE=1
+  - --own-name=io.gitlab.librewolf.*
+  - --own-name=org.mpris.MediaPlayer2.firefox.*
+modules:
+  - shared-modules/dbus-glib/dbus-glib-0.110.json
+  - name: mercury
+    buildsystem: simple
+    build-commands:
+      - mkdir -p /app/lib
+      - mv mercury /app/lib/mercury
+      - chmod a+x -R /app/lib/mercury
+      - install -D -m644 /app/lib/mercury/browser/chrome/icons/default/default128.png /app/share/icons/hicolor/128x128/apps/io.github.alex313031.mercury.png
+      - install -D -m644 /app/lib/mercury/browser/chrome/icons/default/default128.png /app/usr/share/icons/hicolor/128x128/apps/io.github.alex313031.mercury.png
+      # - install -D -m644 io.gitlab.librewolf-community.appdata.xml -t /app/share/metainfo
+      # - install -D -m644 io.gitlab.librewolf-community.desktop -t /app/share/applications
+      - install -D -m755 mercury.sh /app/bin/mercury
+      - install -d /app/lib/ffmpeg
+    sources:
+      - type: archive
+        url: https://github.com/Alex313031/Mercury/releases/download/v.115.4.0/mercury_115.4.0_linux_x64.zip
+        sha256: 0524cfb5b30fa89d990193919433ffc045b6828af2a2baf52ea2df727e11351b
+        dest-filename: mercury.zip
+        strip-components: 2
+        only-arches:
+          - x86_64
+        x-checker-data:
+          type: json
+          url: https://api.github.com/repos/Alex313031/Mercury/releases/latest
+          version-query: '.tag_name | sub("^v."; "")'
+          url-query: '.assets[] | select(.name=="mercury_" + $version + "_linux_x64.zip") | .browser_download_url'
+          is-main-source: true
+      - type: file
+        path: io.gitlab.librewolf-community.desktop
+      - type: file
+        path: io.gitlab.librewolf-community.appdata.xml
+      - type: file
+        path: mercury.sh
+  - name: gtk-cups-backend
+    buildsystem: meson
+    make-args:
+      - modules/printbackends/libprintbackend-cups.so
+    no-make-install: true
+    post-install:
+      - install -Dm 755 modules/printbackends/libprintbackend-cups.so -t /app/lib/gtkmodules/3.0.0/printbackends/
+    sources:
+      - type: archive
+        url: https://download.gnome.org/core/41/41.0/sources/gtk%2B-3.24.30.tar.xz
+        sha256: ba75bfff320ad1f4cfbee92ba813ec336322cc3c660d406aad014b07087a3ba9
+      - type: patch
+        path: gtk3-werror.patch
+  - name: gtk-settings
+    buildsystem: simple
+    build-commands:
+      - install -Dm 644 gtk-settings.ini /app/etc/xdg/gtk-3.0/settings.ini
+    sources:
+      - type: file
+        path: gtk-settings.ini
+  - name: libnotify
+    buildsystem: meson
+    config-opts:
+      - -Dtests=false
+      - -Dintrospection=disabled
+      - -Dman=false
+      - -Dgtk_doc=false
+      - -Ddocbook_docs=disabled
+    sources:
+      - sha256: c5f4ed3d1f86e5b118c76415aacb861873ed3e6f0c6b3181b828cf584fc5c616
+        type: archive
+        url: https://download.gnome.org/sources/libnotify/0.8/libnotify-0.8.2.tar.xz
+        x-checker-data:
+          project-id: 13149
+          type: anitya
+          url-template: https://download.gnome.org/sources/libnotify/$major.$minor/libnotify-$version.tar.xz
